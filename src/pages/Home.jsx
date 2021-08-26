@@ -1,12 +1,10 @@
 import React from 'react';
-
 import Card from '../components/Card';
-import AppContext from '../context';
+
 
 
 
 function Home({
-   cartItems,
    items,
    searchValue,
    setSearchValue,
@@ -14,9 +12,7 @@ function Home({
    onAddToFavorite,
    onAddToCart,
    isLoading
-  }) {
-    const { isItemAdded } = React.useContext(AppContext);
-
+  }) { 
     const renderItems = () => {
       const filtredItems = items.filter((item) => 
         item.title.toLowerCase().includes(searchValue.toLowerCase()),
@@ -29,7 +25,6 @@ function Home({
            key={index}
            onFavorite={(obj) => onAddToFavorite(obj)}
            onPlus={(obj) => onAddToCart(obj)}
-           added={isItemAdded(item && item.id)}
            loading={isLoading}
            {...item}
           />
@@ -47,7 +42,6 @@ function Home({
      {searchValue && <img onClick={() => setSearchValue('')} className="clear cu-p" src="/img/btn-remove.svg" alt="Clear" />}      <input onChange={onChangeSearchInput} value={searchValue} placeholder="Поиск..." />
       </div>
       </div>
-      {console.log(cartItems, items)}
      <div className="d-flex flex-wrap">
       {renderItems()}
        </div>

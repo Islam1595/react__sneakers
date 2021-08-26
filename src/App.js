@@ -10,8 +10,6 @@ import Home from './pages/Home';
 
 
 
-const arr = [ ];
-
 function App() {
   let [items, setItems] = React.useState([]);
   const [cartItems, setCartItems] = React.useState([]);
@@ -47,17 +45,17 @@ function App() {
  };
 
  const onRemoveItem = (id) => {
-   console.log(id);
   axios.delete(`https://610805f6d73c6400170d37b0.mockapi.io/carts/${id}`);
-  setCartItems((prev) => prev.filter(item  => item.id !== id));
+  setCartItems((prev) => prev.filter((item)  => item.id !== id));
  };
 
  
 
  const onAddToFavorite = async (obj) => {
   try {
-    if (favorites.find((favobj) => favobj.id === obj.id)) {
+    if (favorites.find((favobj) => Number(favobj.id) === Number(obj.id))) {
       axios.delete(`https://610805f6d73c6400170d37b0.mockapi.io/favorite/${obj.id}`);
+      setFavorites((prev) => prev.filter((item) => Number(item.id) !== Number(obj.id)));
     } else {
     const { data } = await axios.post('https://610805f6d73c6400170d37b0.mockapi.io/favorite', obj);
     setFavorites((prev) => [...prev, data]);
@@ -66,7 +64,7 @@ function App() {
     alert('Не ууудалось добавить в фавориты');
   }
  };  
-
+ 
  const onChangeSearchInput =(event) => {
    setSearchValue(event.target.value);
  }
@@ -76,9 +74,17 @@ function App() {
  }
  
   return (
-    <AppContext.Provider value={{ items, cartItems, favorites, isItemAdded }}>
+    <AppContext.Provider value={{ 
+      items,
+      cartItems,
+      favorites,
+      isItemAdded,
+      onAddToFavorite,
+      setCartOpened,
+      setCartItems,
+     }}>
       <div className="wrapper clear">
-      {cartOpened && (<Drawer items={ items,cartItems,favorites } onClose={() => setCartOpened(false)} onRemove={onRemoveItem} /> )}
+      {cartOpened && (<Drawer items={ cartItems } onClose={() => setCartOpened(false)} onRemove={onRemoveItem} /> )}
       <Header onClickCart={() => setCartOpened(true)}  />
       
       <Route path="/" exact> 
@@ -94,7 +100,7 @@ function App() {
         />
       </Route>
       <Route path="/favorites" exact> 
-        <Favorites onAddToFavorite={onAddToFavorite} />
+        <Favorites />
       </Route>
        </div>
     </AppContext.Provider>
