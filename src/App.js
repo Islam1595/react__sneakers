@@ -7,6 +7,7 @@ import AppContext from './context'
 
 import Favorites from './pages/Favorites';
 import Home from './pages/Home';
+import Orders from './pages/Orders';
 
 
 
@@ -18,35 +19,62 @@ function App() {
   const [cartOpened, setCartOpened] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
 
- React.useEffect(async () => {
+
+ React.useEffect(() => {
   async function fetchData() {
-    const itemsResponse = await axios.get('https://610805f6d73c6400170d37b0.mockapi.io/Items');
-    const cartResponse = await axios.get('https://610805f6d73c6400170d37b0.mockapi.io/carts');
-    const favoritesResponse = await axios.get('https://610805f6d73c6400170d37b0.mockapi.io/favorite')
+ try {
+    const [cartResponse, favoritesResponse, itemsResponse] = await Promise.all([
+    axios.get('https://610805f6d73c6400170d37b0.mockapi.io/carts'),
+    axios.get('https://610805f6d73c6400170d37b0.mockapi.io/favorite'), 
+    axios.get('https://610805f6d73c6400170d37b0.mockapi.io/Items'),
+    ]);
 
     setIsLoading(false);
     setCartItems(cartResponse.data);
     setFavorites(favoritesResponse.data);
     setItems(itemsResponse.data);
- 
-  }
-
+   } catch (error) {
+   alert('Ошибка при отправке запроса ;(')
+   console.error(error);
+ }
+}
   fetchData();
- }, []);
+  
+}, []);
 
- const onAddToCart = (obj) => {
-  if (cartItems.find((item) => Number(item.id) === Number(obj.id))) {
-    axios.delete(`https://610805f6d73c6400170d37b0.mockapi.io/carts/${obj.id}`);
-    setCartItems((prev) => prev.filter((item) => Number(item.id) !== Number(obj.id)));
-  } else {
-  axios.post('https://610805f6d73c6400170d37b0.mockapi.io/carts', obj);
-  setCartItems((prev) => [...prev, obj]);
+ const onAddToCart = async (obj) => {
+  try {
+    const findItem = cartItems.find((item) => Number(item.parentId) === Number(obj.id)); 
+    if (findItem) {
+      setCartItems((prev) => prev.filter((item) => Number(item.parentId) !== Number(obj.id)));
+      await axios.delete(`https://610805f6d73c6400170d37b0.mockapi.io/carts/${findItem.id}`);
+    } else {
+      setCartItems((prev) => [...prev,  obj]);
+      const { data } =  await axios.post('https://610805f6d73c6400170d37b0.mockapi.io/carts', obj);
+      setCartItems((prev) =>  prev.map(item => {
+        if (item.parentId === data.parentId) {
+          return {
+            ...item,
+            id: data.id
+          };
+        }
+        return item;
+      }));
+    }
+  } catch (error) {
+    alert('Ошибка при удалении из корзины');
+    console.error(error);
   }
  };
 
  const onRemoveItem = (id) => {
+ try {
   axios.delete(`https://610805f6d73c6400170d37b0.mockapi.io/carts/${id}`);
-  setCartItems((prev) => prev.filter((item)  => item.id !== id));
+  setCartItems((prev) => prev.filter((item) => Number(item.parentId) !== Number(id)));
+ } catch (error) {
+   alert('Ошибка при удалении из корзины');
+   console.error(error);
+  }
  };
 
  
@@ -61,7 +89,8 @@ function App() {
     setFavorites((prev) => [...prev, data]);
     }
   } catch (error) {
-    alert('Не ууудалось добавить в фавориты');
+    alert('Не удалось добавить в фавориты');
+    console.error(error);
   }
  };  
  
@@ -70,7 +99,7 @@ function App() {
  }
 
  const isItemAdded = (id) => {
-    return cartItems.some((obj) => Number(obj.id) === Number(id))
+    return cartItems.some((obj) => Number(obj.parentId) === Number(id))
  }
  
   return (
@@ -79,12 +108,13 @@ function App() {
       cartItems,
       favorites,
       isItemAdded,
+      onAddToCart,
       onAddToFavorite,
       setCartOpened,
       setCartItems,
      }}>
       <div className="wrapper clear">
-      {cartOpened && (<Drawer items={ cartItems } onClose={() => setCartOpened(false)} onRemove={onRemoveItem} /> )}
+      <Drawer items={ cartItems } onClose={() => setCartOpened(false)} onRemove={onRemoveItem} opened={cartOpened} /> 
       <Header onClickCart={() => setCartOpened(true)}  />
       
       <Route path="/" exact> 
@@ -101,6 +131,9 @@ function App() {
       </Route>
       <Route path="/favorites" exact> 
         <Favorites />
+      </Route>
+      <Route path="/orders" exact> 
+        <Orders />
       </Route>
        </div>
     </AppContext.Provider>
